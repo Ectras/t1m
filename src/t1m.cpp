@@ -83,9 +83,9 @@ namespace t1m
     internal::gemm_1m(&gemm_ctx);
   }
 
-  void contract(float alpha, Tensor<float> A, std::string labelsA,
+  void contract(Tensor<float> A, std::string labelsA,
     Tensor<float> B, std::string labelsB,
-    float beta, Tensor<float> C, std::string labelsC)
+    Tensor<float> C, std::string labelsC)
   {
     const cntx_t* cntx = bli_gks_query_cntx();
 
@@ -99,6 +99,9 @@ namespace t1m
     auto scatterB = std::make_unique<internal::BlockScatterMatrix<float>>(B, ilf->Pb, ilf->J, KP, NR);
     auto scatterC = std::make_unique<internal::BlockScatterMatrix<float>>(C, ilf->Ic, ilf->Jc, MR, NR);
 
+    float a = 1.;
+    float b = 0.;
+
     const internal::gemm_context<float> gemm_ctx = {
           .cntx = cntx,
           .NC = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_FLOAT, BLIS_NC, cntx),
@@ -110,17 +113,17 @@ namespace t1m
           .A = scatterA.get(),
           .B = scatterB.get(),
           .C = scatterC.get(),
-          .alpha = &alpha,
-          .beta = &beta,
+          .alpha = &a,
+          .beta = &b,
           .kernel = bli_sgemm_ukernel
     };
 
     internal::gemm(&gemm_ctx);
   }
 
-  void contract(double alpha, Tensor<double> A, std::string labelsA,
+  void contract(Tensor<double> A, std::string labelsA,
     Tensor<double> B, std::string labelsB,
-    double beta, Tensor<double> C, std::string labelsC)
+    Tensor<double> C, std::string labelsC)
   {
     const cntx_t* cntx = bli_gks_query_cntx();
 
@@ -134,6 +137,9 @@ namespace t1m
     auto scatterB = std::make_unique<internal::BlockScatterMatrix<double>>(B, ilf->Pb, ilf->J, KP, NR);
     auto scatterC = std::make_unique<internal::BlockScatterMatrix<double>>(C, ilf->Ic, ilf->Jc, MR, NR);
 
+    double a = 1.;
+    double b = 0.;
+
     const internal::gemm_context<double> gemm_ctx = {
           .cntx = cntx,
           .NC = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_DOUBLE, BLIS_NC, cntx),
@@ -145,8 +151,8 @@ namespace t1m
           .A = scatterA.get(),
           .B = scatterB.get(),
           .C = scatterC.get(),
-          .alpha = &alpha,
-          .beta = &beta,
+          .alpha = &a,
+          .beta = &b,
           .kernel = bli_dgemm_ukernel
     };
 

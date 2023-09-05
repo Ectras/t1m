@@ -14,11 +14,11 @@ namespace t1m
                 Tensor<std::complex<double>> B, std::string labelsB,
                 Tensor<std::complex<double>> C, std::string labelsC);
 
-  void contract(float alpha, Tensor<float> A, std::string labelsA,
+  void contract(Tensor<float> A, std::string labelsA,
                 Tensor<float> B, std::string labelsB,
-                float beta, Tensor<float> C, std::string labelsC);
+                Tensor<float> C, std::string labelsC);
 
-  void contract(double alpha, Tensor<double> A, std::string labelsA,
+  void contract(Tensor<double> A, std::string labelsA,
                 Tensor<double> B, std::string labelsB,
-                double beta, Tensor<double> C, std::string labelsC);
+                Tensor<double> C, std::string labelsC);
 };
