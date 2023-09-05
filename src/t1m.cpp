@@ -1,5 +1,6 @@
 #include <complex>
 #include <memory>
+#include "t1m/t1m.hpp"
 #include "t1m/tensor.hpp"
 #include "t1m/index_bundle_finder.hpp"
 #include "t1m/scatter_matrix.hpp"
@@ -8,6 +9,7 @@
 
 namespace t1m
 {
+  template <>
   void contract(Tensor<std::complex<float>> A, std::string labelsA,
     Tensor<std::complex<float>> B, std::string labelsB,
     Tensor<std::complex<float>> C, std::string labelsC)
@@ -46,6 +48,7 @@ namespace t1m
     internal::gemm_1m(&gemm_ctx);
   }
 
+  template <>
   void contract(Tensor<std::complex<double>> A, std::string labelsA,
     Tensor<std::complex<double>> B, std::string labelsB,
     Tensor<std::complex<double>> C, std::string labelsC)
@@ -83,6 +86,7 @@ namespace t1m
     internal::gemm_1m(&gemm_ctx);
   }
 
+  template <>
   void contract(Tensor<float> A, std::string labelsA,
     Tensor<float> B, std::string labelsB,
     Tensor<float> C, std::string labelsC)
@@ -121,6 +125,7 @@ namespace t1m
     internal::gemm(&gemm_ctx);
   }
 
+  template <>
   void contract(Tensor<double> A, std::string labelsA,
     Tensor<double> B, std::string labelsB,
     Tensor<double> C, std::string labelsC)
