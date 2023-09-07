@@ -10,8 +10,8 @@ namespace t1m::internal
   class IndexBundleFinder
   {
   public:
-    IndexBundleFinder(const std::string &labelsA, const std::string &labelsB, const std::string &labelsC)
-        : labelsA(labelsA), labelsB(labelsB), labelsC(labelsC)
+    IndexBundleFinder(std::vector<int> labelsA, std::vector<int> labelsB, std::vector<int> labelsC)
+        : labelsA(std::move(labelsA)), labelsB(std::move(labelsB)), labelsC(std::move(labelsC))
     {
       this->find();
       this->find_c_permutation();
@@ -21,12 +21,12 @@ namespace t1m::internal
     void find()
     {
       bool in_I;
-      std::unordered_set<char> setB{labelsB.cbegin(), labelsB.cend()};
+      std::unordered_set<int> setB{labelsB.cbegin(), labelsB.cend()};
 
-      for (size_t i = 0; i < labelsA.length(); i++)
+      for (size_t i = 0; i < labelsA.size(); i++)
       {
         in_I = false;
-        for (size_t j = 0; j < labelsB.length(); j++)
+        for (size_t j = 0; j < labelsB.size(); j++)
         {
           if (labelsA.at(i) == labelsB.at(j))
           {
@@ -41,7 +41,7 @@ namespace t1m::internal
           this->I.push_back(i);
       }
 
-      for (int j = 0; j < labelsB.length(); j++)
+      for (int j = 0; j < labelsB.size(); j++)
         if (setB.count(labelsB.at(j)) > 0)
         {
           this->J.push_back(j);
@@ -52,7 +52,7 @@ namespace t1m::internal
     {
       for (const auto &idx : this->I)
       {
-        for (int j = 0; j < this->labelsC.length(); j++)
+        for (int j = 0; j < this->labelsC.size(); j++)
         {
           if (this->labelsA.at(idx) == this->labelsC.at(j))
           {
@@ -63,7 +63,7 @@ namespace t1m::internal
 
       for (const auto &idx : this->J)
       {
-        for (int j = 0; j < this->labelsC.length(); j++)
+        for (int j = 0; j < this->labelsC.size(); j++)
         {
           if (this->labelsB.at(idx) == this->labelsC.at(j))
           {
@@ -83,8 +83,8 @@ namespace t1m::internal
     std::vector<size_t> Jc;
 
   private:
-    std::string labelsA;
-    std::string labelsB;
-    std::string labelsC;
+    std::vector<int> labelsA;
+    std::vector<int> labelsB;
+    std::vector<int> labelsC;
   };
 };
