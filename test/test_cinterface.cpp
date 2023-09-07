@@ -56,7 +56,7 @@ TEST_CASE("(double) 2D . 2D => 2D")
 
     SUBCASE("standard")
     {
-        t1m_contract(A, shapeA, 2, (char *)"ab", B, shapeB, 2, (char *)"bc", C, shapeC, 2, (char *)"ac");
+        t1m_contract(A, shapeA, 2, "ab", B, shapeB, 2, "bc", C, shapeC, 2, "ac");
 
         requireAll(C, {11.5 + 7.5 * I,
                        -0.5 -3.5 * I,
