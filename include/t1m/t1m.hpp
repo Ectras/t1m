@@ -7,6 +7,7 @@
 
 namespace t1m
 {
+  // String labels
   template <typename T>
   void contract(Tensor<T> &A, const std::string_view labelsA,
                 Tensor<T> &B, const std::string_view labelsB,
@@ -31,4 +32,9 @@ namespace t1m
   void contract(Tensor<double> &A, const std::string_view labelsA,
                 Tensor<double> &B, const std::string_view labelsB,
                 Tensor<double> &C, const std::string_view labelsC);
+
+  // Integer labels
+  void contract(Tensor<std::complex<double>> &A, std::vector<int> labelsA,
+                Tensor<std::complex<double>> &B, std::vector<int> labelsB,
+                Tensor<std::complex<double>> &C, std::vector<int> labelsC);
 };

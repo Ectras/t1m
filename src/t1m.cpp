@@ -138,4 +138,11 @@ namespace t1m
   {
     contract_internal(A, labelsA, B, labelsB, C, labelsC);
   }
+
+  void contract(Tensor<std::complex<double>> &A, std::vector<int> labelsA,
+                Tensor<std::complex<double>> &B, std::vector<int> labelsB,
+                Tensor<std::complex<double>> &C, std::vector<int> labelsC)
+  {
+    contract_internal(A, labelsA, B, labelsB, C, labelsC);
+  }
 };
