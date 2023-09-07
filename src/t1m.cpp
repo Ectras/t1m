@@ -1,166 +1,121 @@
-#include <complex>
-#include <memory>
 #include "t1m/t1m.hpp"
-#include "t1m/tensor.hpp"
-#include "t1m/index_bundle_finder.hpp"
-#include "t1m/scatter_matrix.hpp"
 #include "t1m/block_scatter_matrix.hpp"
 #include "t1m/gemm.hpp"
+#include "t1m/index_bundle_finder.hpp"
+#include "t1m/scatter_matrix.hpp"
+#include "t1m/tensor.hpp"
+#include <complex>
+#include <memory>
 
 namespace t1m
 {
-  template <>
-  void contract(Tensor<std::complex<float>> A, std::string labelsA,
-    Tensor<std::complex<float>> B, std::string labelsB,
-    Tensor<std::complex<float>> C, std::string labelsC)
+  template <typename T>
+  struct tensor_type
   {
-    const cntx_t* cntx = bli_gks_query_cntx();
+    using value_type = T;
+    using is_complex = std::false_type;
+    using is_double = std::is_same<T, double>;
+  };
 
-    const dim_t NR = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_FLOAT, BLIS_NR, cntx);
-    const dim_t MR = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_FLOAT, BLIS_MR, cntx);
+  template <typename T>
+  struct tensor_type<std::complex<T>>
+  {
+    using value_type = T;
+    using is_complex = std::true_type;
+    using is_double = std::is_same<T, double>;
+  };
+
+  template <typename T>
+  void contract_internal(Tensor<T> A, std::string labelsA,
+                         Tensor<T> B, std::string labelsB,
+                         Tensor<T> C, std::string labelsC)
+  {
+    using TensorType = tensor_type<T>;
+    using BaseType = typename TensorType::value_type;
+    constexpr bool is_complex = TensorType::is_complex::value;
+    constexpr bool is_double = TensorType::is_double::value;
+
+    const cntx_t *cntx = bli_gks_query_cntx();
+
+    const auto BLIS_TYPE = is_double ? BLIS_DOUBLE : BLIS_FLOAT;
+    const dim_t NR = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_TYPE, BLIS_NR, cntx);
+    const dim_t MR = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_TYPE, BLIS_MR, cntx);
     const dim_t KP = 4;
 
     const auto ilf = std::make_unique<internal::IndexBundleFinder>(labelsA, labelsB, labelsC);
 
-    auto scatterA = std::make_unique<internal::BlockScatterMatrix<std::complex<float>>>(A, ilf->I, ilf->Pa, MR, KP);
-    auto scatterB = std::make_unique<internal::BlockScatterMatrix<std::complex<float>>>(B, ilf->Pb, ilf->J, KP, NR);
-    auto scatterC = std::make_unique<internal::BlockScatterMatrix<std::complex<float>>>(C, ilf->Ic, ilf->Jc, MR, NR);
+    auto scatterA = std::make_unique<internal::BlockScatterMatrix<T>>(A, ilf->I, ilf->Pa, MR, KP);
+    auto scatterB = std::make_unique<internal::BlockScatterMatrix<T>>(B, ilf->Pb, ilf->J, KP, NR);
+    auto scatterC = std::make_unique<internal::BlockScatterMatrix<T>>(C, ilf->Ic, ilf->Jc, MR, NR);
 
-    float a = 1.;
-    float b = 0.;
+    BaseType alpha = 1.0;
+    BaseType beta = 0.0;
 
-    const internal::gemm_context_1m<std::complex<float>, float> gemm_ctx = {
+    using ContextType = std::conditional_t<is_complex, internal::gemm_context_1m<T, BaseType>, internal::gemm_context<T>>;
+    ContextType gemm_ctx = {
         .cntx = cntx,
-        .NC = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_FLOAT, BLIS_NC, cntx),
-        .KC = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_FLOAT, BLIS_KC, cntx),
-        .MC = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_FLOAT, BLIS_MC, cntx),
+        .NC = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_TYPE, BLIS_NC, cntx),
+        .KC = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_TYPE, BLIS_KC, cntx),
+        .MC = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_TYPE, BLIS_MC, cntx),
         .NR = NR,
         .MR = MR,
         .KP = KP,
         .A = scatterA.get(),
         .B = scatterB.get(),
         .C = scatterC.get(),
-        .alpha = &a,
-        .beta = &b,
-        .kernel = bli_sgemm_ukernel
-    };
+        .alpha = &alpha,
+        .beta = &beta};
 
-    internal::gemm_1m(&gemm_ctx);
+    // Choose the correct kernel
+    if constexpr (is_double)
+    {
+      gemm_ctx.kernel = bli_dgemm_ukernel;
+    }
+    else
+    {
+      gemm_ctx.kernel = bli_sgemm_ukernel;
+    }
+
+    // Run the matrix multiplication
+    if constexpr (is_complex)
+    {
+      internal::gemm_1m(&gemm_ctx);
+    }
+    else
+    {
+      internal::gemm(&gemm_ctx);
+    }
+  }
+
+  template <>
+  void contract(Tensor<std::complex<float>> A, std::string labelsA,
+                Tensor<std::complex<float>> B, std::string labelsB,
+                Tensor<std::complex<float>> C, std::string labelsC)
+  {
+    contract_internal(A, labelsA, B, labelsB, C, labelsC);
   }
 
   template <>
   void contract(Tensor<std::complex<double>> A, std::string labelsA,
-    Tensor<std::complex<double>> B, std::string labelsB,
-    Tensor<std::complex<double>> C, std::string labelsC)
+                Tensor<std::complex<double>> B, std::string labelsB,
+                Tensor<std::complex<double>> C, std::string labelsC)
   {
-    const cntx_t* cntx = bli_gks_query_cntx();
-
-    const dim_t NR = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_DOUBLE, BLIS_NR, cntx);
-    const dim_t MR = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_DOUBLE, BLIS_MR, cntx);
-    const dim_t KP = 4;
-
-    const auto ilf = std::make_unique<internal::IndexBundleFinder>(labelsA, labelsB, labelsC);
-
-    auto scatterA = std::make_unique<internal::BlockScatterMatrix<std::complex<double>>>(A, ilf->I, ilf->Pa, MR, KP);
-    auto scatterB = std::make_unique<internal::BlockScatterMatrix<std::complex<double>>>(B, ilf->Pb, ilf->J, KP, NR);
-    auto scatterC = std::make_unique<internal::BlockScatterMatrix<std::complex<double>>>(C, ilf->Ic, ilf->Jc, MR, NR);
-
-    double a = 1.;
-    double b = 0.;
-
-    const internal::gemm_context_1m<std::complex<double>, double> gemm_ctx = {
-        .cntx = cntx,
-        .NC = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_DOUBLE, BLIS_NC, cntx),
-        .KC = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_DOUBLE, BLIS_KC, cntx),
-        .MC = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_DOUBLE, BLIS_MC, cntx),
-        .NR = NR,
-        .MR = MR,
-        .KP = KP,
-        .A = scatterA.get(),
-        .B = scatterB.get(),
-        .C = scatterC.get(),
-        .alpha = &a,
-        .beta = &b,
-        .kernel = bli_dgemm_ukernel
-    };
-    internal::gemm_1m(&gemm_ctx);
+    contract_internal(A, labelsA, B, labelsB, C, labelsC);
   }
 
   template <>
   void contract(Tensor<float> A, std::string labelsA,
-    Tensor<float> B, std::string labelsB,
-    Tensor<float> C, std::string labelsC)
+                Tensor<float> B, std::string labelsB,
+                Tensor<float> C, std::string labelsC)
   {
-    const cntx_t* cntx = bli_gks_query_cntx();
-
-    const dim_t NR = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_FLOAT, BLIS_NR, cntx);
-    const dim_t MR = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_FLOAT, BLIS_MR, cntx);
-    const dim_t KP = 4;
-
-    const auto ilf = std::make_unique<internal::IndexBundleFinder>(labelsA, labelsB, labelsC);
-
-    auto scatterA = std::make_unique<internal::BlockScatterMatrix<float>>(A, ilf->I, ilf->Pa, MR, KP);
-    auto scatterB = std::make_unique<internal::BlockScatterMatrix<float>>(B, ilf->Pb, ilf->J, KP, NR);
-    auto scatterC = std::make_unique<internal::BlockScatterMatrix<float>>(C, ilf->Ic, ilf->Jc, MR, NR);
-
-    float a = 1.;
-    float b = 0.;
-
-    const internal::gemm_context<float> gemm_ctx = {
-          .cntx = cntx,
-          .NC = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_FLOAT, BLIS_NC, cntx),
-          .KC = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_FLOAT, BLIS_KC, cntx),
-          .MC = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_FLOAT, BLIS_MC, cntx),
-          .NR = NR,
-          .MR = MR,
-          .KP = KP,
-          .A = scatterA.get(),
-          .B = scatterB.get(),
-          .C = scatterC.get(),
-          .alpha = &a,
-          .beta = &b,
-          .kernel = bli_sgemm_ukernel
-    };
-
-    internal::gemm(&gemm_ctx);
+    contract_internal(A, labelsA, B, labelsB, C, labelsC);
   }
 
   template <>
   void contract(Tensor<double> A, std::string labelsA,
-    Tensor<double> B, std::string labelsB,
-    Tensor<double> C, std::string labelsC)
+                Tensor<double> B, std::string labelsB,
+                Tensor<double> C, std::string labelsC)
   {
-    const cntx_t* cntx = bli_gks_query_cntx();
-
-    const dim_t NR = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_DOUBLE, BLIS_NR, cntx);
-    const dim_t MR = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_DOUBLE, BLIS_MR, cntx);
-    const dim_t KP = 4;
-
-    const auto ilf = std::make_unique<internal::IndexBundleFinder>(labelsA, labelsB, labelsC);
-
-    auto scatterA = std::make_unique<internal::BlockScatterMatrix<double>>(A, ilf->I, ilf->Pa, MR, KP);
-    auto scatterB = std::make_unique<internal::BlockScatterMatrix<double>>(B, ilf->Pb, ilf->J, KP, NR);
-    auto scatterC = std::make_unique<internal::BlockScatterMatrix<double>>(C, ilf->Ic, ilf->Jc, MR, NR);
-
-    double a = 1.;
-    double b = 0.;
-
-    const internal::gemm_context<double> gemm_ctx = {
-          .cntx = cntx,
-          .NC = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_DOUBLE, BLIS_NC, cntx),
-          .KC = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_DOUBLE, BLIS_KC, cntx),
-          .MC = bli_cntx_get_l3_sup_blksz_def_dt(BLIS_DOUBLE, BLIS_MC, cntx),
-          .NR = NR,
-          .MR = MR,
-          .KP = KP,
-          .A = scatterA.get(),
-          .B = scatterB.get(),
-          .C = scatterC.get(),
-          .alpha = &a,
-          .beta = &b,
-          .kernel = bli_dgemm_ukernel
-    };
-
-    internal::gemm(&gemm_ctx);
+    contract_internal(A, labelsA, B, labelsB, C, labelsC);
   }
 };
