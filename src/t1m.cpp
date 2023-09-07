@@ -27,9 +27,9 @@ namespace t1m
   };
 
   template <typename T>
-  void contract_internal(Tensor<T> A, std::vector<int> labelsA,
-                         Tensor<T> B, std::vector<int> labelsB,
-                         Tensor<T> C, std::vector<int> labelsC)
+  void contract_internal(Tensor<T> &A, std::vector<int> labelsA,
+                         Tensor<T> &B, std::vector<int> labelsB,
+                         Tensor<T> &C, std::vector<int> labelsC)
   {
     using TensorType = tensor_type<T>;
     using BaseType = typename TensorType::value_type;
@@ -100,41 +100,41 @@ namespace t1m
   }
 
   template <typename T>
-  void contract_internal(Tensor<T> A, const std::string_view labelsA,
-                         Tensor<T> B, const std::string_view labelsB,
-                         Tensor<T> C, const std::string_view labelsC)
+  void contract_internal(Tensor<T> &A, const std::string_view labelsA,
+                         Tensor<T> &B, const std::string_view labelsB,
+                         Tensor<T> &C, const std::string_view labelsC)
   {
     contract_internal(A, parse_labels(labelsA), B, parse_labels(labelsB), C, parse_labels(labelsC));
   }
 
   template <>
-  void contract(Tensor<std::complex<float>> A, const std::string_view labelsA,
-                Tensor<std::complex<float>> B, const std::string_view labelsB,
-                Tensor<std::complex<float>> C, const std::string_view labelsC)
+  void contract(Tensor<std::complex<float>> &A, const std::string_view labelsA,
+                Tensor<std::complex<float>> &B, const std::string_view labelsB,
+                Tensor<std::complex<float>> &C, const std::string_view labelsC)
   {
     contract_internal(A, labelsA, B, labelsB, C, labelsC);
   }
 
   template <>
-  void contract(Tensor<std::complex<double>> A, const std::string_view labelsA,
-                Tensor<std::complex<double>> B, const std::string_view labelsB,
-                Tensor<std::complex<double>> C, const std::string_view labelsC)
+  void contract(Tensor<std::complex<double>> &A, const std::string_view labelsA,
+                Tensor<std::complex<double>> &B, const std::string_view labelsB,
+                Tensor<std::complex<double>> &C, const std::string_view labelsC)
   {
     contract_internal(A, labelsA, B, labelsB, C, labelsC);
   }
 
   template <>
-  void contract(Tensor<float> A, const std::string_view labelsA,
-                Tensor<float> B, const std::string_view labelsB,
-                Tensor<float> C, const std::string_view labelsC)
+  void contract(Tensor<float> &A, const std::string_view labelsA,
+                Tensor<float> &B, const std::string_view labelsB,
+                Tensor<float> &C, const std::string_view labelsC)
   {
     contract_internal(A, labelsA, B, labelsB, C, labelsC);
   }
 
   template <>
-  void contract(Tensor<double> A, const std::string_view labelsA,
-                Tensor<double> B, const std::string_view labelsB,
-                Tensor<double> C, const std::string_view labelsC)
+  void contract(Tensor<double> &A, const std::string_view labelsA,
+                Tensor<double> &B, const std::string_view labelsB,
+                Tensor<double> &C, const std::string_view labelsC)
   {
     contract_internal(A, labelsA, B, labelsB, C, labelsC);
   }
