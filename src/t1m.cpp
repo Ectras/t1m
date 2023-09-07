@@ -143,6 +143,6 @@ namespace t1m
                 Tensor<std::complex<double>> &B, std::vector<int> labelsB,
                 Tensor<std::complex<double>> &C, std::vector<int> labelsC)
   {
-    contract_internal(A, labelsA, B, labelsB, C, labelsC);
+    contract_internal(A, std::move(labelsA), B, std::move(labelsB), C, std::move(labelsC));
   }
 };

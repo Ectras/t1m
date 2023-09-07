@@ -4,13 +4,17 @@
 #include <vector>
 
 extern "C" {
-    void t1m_contract(_Complex double *A, size_t *shapeA, int ndimA, const char *labelsA,
-                    _Complex double *B, size_t *shapeB, int ndimB, const char *labelsB,
-                    _Complex double *C, size_t *shapeC, int ndimC, const char *labelsC)
+    void t1m_contract(_Complex double *A, size_t *shapeA, int ndimA, const int *labelsA,
+                    _Complex double *B, size_t *shapeB, int ndimB, const int *labelsB,
+                    _Complex double *C, size_t *shapeC, int ndimC, const int *labelsC)
     {
         std::vector<size_t> shapeA_(shapeA, shapeA + ndimA);
         std::vector<size_t> shapeB_(shapeB, shapeB + ndimB);
         std::vector<size_t> shapeC_(shapeC, shapeC + ndimC);
+
+        std::vector<int> labelsA_(labelsA, labelsA + ndimA);
+        std::vector<int> labelsB_(labelsB, labelsB + ndimB);
+        std::vector<int> labelsC_(labelsC, labelsC + ndimC);
 
         auto Acpp = reinterpret_cast<std::complex<double> *>(A);
         auto Bcpp = reinterpret_cast<std::complex<double> *>(B);
@@ -20,8 +24,8 @@ extern "C" {
         auto B_ = t1m::Tensor<std::complex<double>>(shapeB_, Bcpp);
         auto C_ = t1m::Tensor<std::complex<double>>(shapeC_, Ccpp);
 
-        t1m::contract(A_, std::string_view(labelsA, ndimA),
-                    B_, std::string_view(labelsB, ndimB),
-                    C_, std::string_view(labelsC, ndimC));
+        t1m::contract(A_, std::move(labelsA_),
+                    B_, std::move(labelsB_),
+                    C_, std::move(labelsC_));
     }
 }
