@@ -4,8 +4,8 @@
 #include <vector>
 
 extern "C" {
-    void t1m_contract(_Complex double *A, const size_t *shapeA, int ndimA, const int *labelsA,
-                    _Complex double *B, const size_t *shapeB, int ndimB, const int *labelsB,
+    void t1m_contract(const _Complex double *A, const size_t *shapeA, int ndimA, const int *labelsA,
+                    const _Complex double *B, const size_t *shapeB, int ndimB, const int *labelsB,
                     _Complex double *C, const size_t *shapeC, int ndimC, const int *labelsC)
     {
         std::vector<size_t> shapeA_(shapeA, shapeA + ndimA);
@@ -16,8 +16,14 @@ extern "C" {
         std::vector<int> labelsB_(labelsB, labelsB + ndimB);
         std::vector<int> labelsC_(labelsC, labelsC + ndimC);
 
-        auto Acpp = reinterpret_cast<std::complex<double> *>(A);
-        auto Bcpp = reinterpret_cast<std::complex<double> *>(B);
+        // Cast away const because I don't know how to go from const pointer directly
+        // to const std::complex<double>
+        auto Araw = const_cast<_Complex double *>(A);
+        auto Braw = const_cast<_Complex double *>(B);
+
+        // Cast from C complex to C++ complex
+        const auto Acpp = reinterpret_cast<std::complex<double> *>(Araw);
+        const auto Bcpp = reinterpret_cast<std::complex<double> *>(Braw);
         auto Ccpp = reinterpret_cast<std::complex<double> *>(C);
 
         auto A_ = t1m::Tensor<std::complex<double>>(shapeA_, Acpp);
